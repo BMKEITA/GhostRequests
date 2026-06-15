@@ -40,7 +40,7 @@ GhostRequests/
 ├── run_experiments.py
 ├── ghost_main.py
 └── ghost_main.py
-
+```
 ##  Installation
 ### Requirements
 - Python ≥ 3.10
