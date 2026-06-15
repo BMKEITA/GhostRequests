@@ -7,7 +7,6 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey" />
   <img src="https://img.shields.io/badge/Status-IEEE%20TIFS%20Submission-red" />
 </p>
-
 ## Overview
 
 **Ghost Requests** is an adversarial unlearning framework that exploits the **Federated Unlearning (FU)** pipeline in Federated Learning (FL) systems. While FU is designed to satisfy privacy regulations (GDPR, CCPA — the *right to be forgotten*), Ghost Requests demonstrates that this process can be **weaponized** to silently redirect global model predictions toward a chosen misclassification.
@@ -23,26 +22,7 @@ Unlike prior work (FedMUA, BadFU), Ghost Requests treats **stealth as a hard con
 | **Stealth Index (SI)** | **≥ 0.939** | 0.082 |
 | **Improvement over FedMUA** | **11.4×** | — |
 | **Grey-box (25% proxy)** | ASR = 1.000, SI = 0.971 | N/A |
-
-
-
-### Stage 1 — Influential Sample Identification (ISI)
-Uses **LiSSA-based Influence Functions** to identify the top-*k* local samples most influential on the target prediction. Reduces Hessian complexity from O(d²) to O(d).
-
-$$\mathcal{I}(z, z_t) = -\nabla_w \mathcal{L}(z_t, \hat{w})^\top H_{\hat{w}}^{-1} \nabla_w \mathcal{L}(z, \hat{w})$$
-
-### Stage 2 — Ghost MUG (Solo-Optimization)
-Constructs a ghost sample via linear interpolation between the target and the mean of influential samples. Optimizes α via Adam:
-
-$$x_{\text{ghost}} = \alpha \cdot x_t + (1 - \alpha) \cdot \bar{x}_{\text{inf}}$$
-
-### Stage 3 — Bootstrap Gradient Rescaling
-The **critical stealth component**. Forces the malicious gradient norm into the benign IQR — a hard guarantee independent of all other parameters:
-
-$$g^* = g_{\text{raw}} \cdot \frac{\text{clip}(\text{median}(\mathcal{B}),\, Q_1(\mathcal{B}),\, Q_3(\mathcal{B}))}{\|g_{\text{raw}}\|_2}$$
-
 ---
-
 ##  Repository Structure
 
 ```
@@ -62,24 +42,11 @@ GhostRequests/
 └── ghost_main.py
 
 ##  Installation
-
 ### Requirements
 - Python ≥ 3.10
 - CUDA 12.1 (recommended: NVIDIA GPU with ≥ 8 GB VRAM)
 - PyTorch 2.3.1
-```
-torch==2.3.1
-torchvision==0.18.1
-numpy>=1.24.0
-scipy>=1.11.0
-scikit-learn>=1.3.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
-pyyaml>=6.0
-tqdm>=4.65.0
-```
 ### Setup
-
 ```bash
 # Clone the repository
 git clone https://github.com/BMKEITA/GhostRequests.git
