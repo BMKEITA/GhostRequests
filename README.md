@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey" />
   <img src="https://img.shields.io/badge/Status-IEEE%20TIFS%20Submission-red" />
 </p>
-## Overview
+
 
 **Ghost Requests** is an adversarial unlearning framework that exploits the **Federated Unlearning (FU)** pipeline in Federated Learning (FL) systems. While FU is designed to satisfy privacy regulations (GDPR, CCPA — the *right to be forgotten*), Ghost Requests demonstrates that this process can be **weaponized** to silently redirect global model predictions toward a chosen misclassification.
 
