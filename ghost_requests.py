@@ -1,9 +1,8 @@
-# ghost_requests.py  —  Ghost Requests v6
-# Corrections vs v5 :
+# ghost_requests.py  
 #   [C1] model.forward_loss() → nn.CrossEntropyLoss()(model(X), y)  (×3)
-#   [C2] ghost_mug() retourne maintenant (X_ghost, best_alpha, history, mal_grad_rescaled)
-#   [C3] Bootstrap Rescaling IQR-clamped integre dans ghost_mug()
-#   [C4] Support multi-samples influents (X_inf peut avoir N lignes)
+#   [C2] ghost_mug() return now (X_ghost, best_alpha, history, mal_grad_rescaled)
+#   [C3] Bootstrap Rescaling IQR-clamped in ghost_mug()
+#   [C4] Support for multiple influential samples (X_inf can have N rows)
 
 import torch
 import torch.nn as nn
@@ -26,7 +25,7 @@ def hvp(model, X, y, v):
 
 
 def lissa_ihvp(model, X_train, y_train, v, depth=200, scale=50.0, batch_size=32):
-    """LiSSA : approximation iterative de l'inverse Hessian-vector product."""
+    """LiSSA : approximation iterative de l'inverse Hessian-vector product"""
     h = v.clone().detach()
     n = X_train.size(0)
     for _ in range(depth):
@@ -37,7 +36,7 @@ def lissa_ihvp(model, X_train, y_train, v, depth=200, scale=50.0, batch_size=32)
 
 
 def compute_influences(model, X_local, y_local, X_target, y_target, FL_params):
-    """Calcule les scores d'influence de chaque sample local sur la cible."""
+    """Calculate the influence scores of each local sample on the target."""
     device = FL_params.device
     model.zero_grad()
     # [C1] Remplace model.forward_loss()
@@ -70,7 +69,7 @@ def compute_influences(model, X_local, y_local, X_target, y_target, FL_params):
 def isi(model, X_local, y_local, X_target, y_target, FL_params, ratio=0.5):
     """
     Influence Sample Identification (ISI).
-    Retourne les indices des samples les plus influents sur la cible.
+    Returns the indices of the samples most influential on the target
     """
     scores   = compute_influences(
         model, X_local, y_local, X_target, y_target, FL_params
@@ -87,22 +86,22 @@ def isi(model, X_local, y_local, X_target, y_target, FL_params, ratio=0.5):
     return same_label, scores
 
 
-# ─── Composantes de la Loss de Furtivite ──────────────────────────────────────
+# ─── Components of the Stealth Loss ──────────────────────────────────────
 
 def L_norm(grad_mal, benign_stats):
-    """Penalise si la norme depasse Q3 des benins."""
+    """Penalizes if the standard exceeds Q3 for benign individuals."""
     return F.relu(grad_mal.norm() - benign_stats['q3'])
 
 
 def L_dist(grad_mal, benign_stats):
-    """Distance normalisee à la moyenne benigne (z-score²)."""
+    """Normalized distance to the benign mean(z-score²)."""
     mu    = benign_stats['mean_norm']
     sigma = benign_stats['std_norm'] + 1e-8
     return ((grad_mal.norm() - mu) / sigma) ** 2
 
 
 def L_dist_kl(grad_mal, benign_stats):
-    """Approximation KL divergence sur la norme."""
+    """KL approximation divergence on the norm."""
     mu    = benign_stats['mean_norm']
     sigma = benign_stats['std_norm'] + 1e-8
     norm  = grad_mal.norm()
@@ -113,12 +112,12 @@ def L_dist_kl(grad_mal, benign_stats):
 
 
 def L_inf_stealth(grad_mal, benign_stats):
-    """Distance à la norme d'influence moyenne."""
+    """Distance from the average influence standard"""
     return (grad_mal.norm() - benign_stats.get('mean_influence', 0.0)) ** 2
 
 
 def L_cosine(grad_mal, mean_benign_grad):
-    """Penalise si la direction est opposee aux benins."""
+    """Penalized if the direction is opposed to the benins"""
     cos = F.cosine_similarity(
         grad_mal.unsqueeze(0),
         mean_benign_grad.unsqueeze(0)
@@ -157,17 +156,15 @@ def compute_L_stealth(grad_mal, benign_stats,
 
 def bootstrap_rescale(grad: torch.Tensor, benign_stats: dict) -> torch.Tensor:
     """
-    [C3] Rescale le gradient malveillant pour que sa norme soit
-    dans l'IQR des gradients benins (Q1 ≤ norme ≤ Q3).
-
-    Cible : mediane des benins, clampee dans [Q1, Q3].
-    Garantit GNR ≈ 1.0 et DR_IQR = 0.0.
+    [C3]Rescale the malicious gradient so that its norm is within the IQR of benign gradients (Q1 norm Q3). 
+    Target: median of benign gradients, clamped in [Q1, Q3]. 
+    Guarantees GNR 1.0 and DR_IQR = 0.0
     """
-    # Recuperer les normes brutes si disponibles, sinon reconstruire depuis stats
+    # Retrieve the raw values ​​if available, otherwise rebuild from statistics
     if 'all_norms' in benign_stats:
         norms_np = np.array(benign_stats['all_norms'], dtype=np.float32)
     else:
-        # Fallback : simuler une distribution gaussienne autour de mean/std
+        # Fallback : simulate a Gaussian distribution around mean/std
         mu  = benign_stats['mean_norm']
         std = benign_stats['std_norm'] + 1e-8
         q3  = benign_stats.get('q3', mu + std)
@@ -196,22 +193,22 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
               benign_stats, FL_params, mean_benign_grad=None,
               X_benign_pool=None, y_benign_pool=None):
     """
-    Ghost MUG v6 — Solo-Optimization + Bootstrap Rescaling [C2/C3]
+    Ghost MUG  — Solo-Optimization + Bootstrap Rescaling [C2/C3]
 
-    Optimise alpha pour construire :
+    Optimize alpha to build :
         X_ghost = alpha * X_target + (1 - alpha) * mean(X_inf)
-    tel que :
-        1. Le modèle classe X_ghost comme y_inf (ASR = 1.0)
-        2. Le gradient de X_ghost ressemble aux gradients benins (stealth)
-        3. [C3] Le gradient final est rescale dans l'IQR benin
+    such that: 
+    1. The model classifies X_ghost as y_inf (ASR = 1.0) 
+    2. The gradient of X_ghost resembles benign (stealth) gradients 
+    3. [C3] The final gradient is rescaled to the benign IQR
 
-    [C4] X_inf peut contenir plusieurs samples (N, C, H, W) → moyenne utilisee.
+    [C4] X_inf can contain several samples (N, C, H, W) average used.
 
     Retourne :
         X_ghost_final    : image ghost (tensor)
         best_alpha       : float, alpha optimal
-        history          : liste des loss par step
-        mal_grad_rescaled: gradient malveillant rescale (tensor 1D)
+        history          : list of losses per step
+        mal_grad_rescaled: malicious gradient rescale (1D tensor)
     """
     device = next(model.parameters()).device
 
@@ -222,7 +219,7 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
     if mean_benign_grad is not None:
         mean_benign_grad = mean_benign_grad.to(device)
 
-    # [C4] Si plusieurs samples influents, utiliser leur moyenne comme ancre
+    # [C4] If several influential samples are used, use their average as an anchor.
     if X_inf.dim() == 4 and X_inf.size(0) > 1:
         X_inf_anchor = X_inf.mean(0, keepdim=True)   # (1, C, H, W)
         y_inf_anchor = y_inf[0:1]
@@ -234,7 +231,7 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
     n_steps  = getattr(FL_params, 'ghost_mug_steps',     200)
     a4       = getattr(FL_params, 'ghost_alpha4',         2.0)
 
-    # ── Optimisation de alpha ──────────────────────────────────────────────────
+    # ── Optimisation of alpha ──────────────────────────────────────────────────
     alpha     = torch.tensor([0.5], dtype=torch.float32,
                               device=device, requires_grad=True)
     optimizer = torch.optim.Adam([alpha], lr=0.01)
@@ -250,10 +247,10 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
         a_clamped = alpha.clamp(0.0, 1.0)
         X_ghost   = a_clamped * X_target + (1.0 - a_clamped) * X_inf_anchor
 
-        # Loss 1 : classification correcte de X_ghost → ASR
+        # Loss 1 : Correct classification of X_ghost ASR
         L_cls = nn.CrossEntropyLoss()(model(X_ghost), y_inf_anchor)
 
-        # Loss 2 : furtivite du gradient
+        # Loss 2 : gradient stealth
         model.zero_grad()
         loss_g = nn.CrossEntropyLoss()(model(X_ghost), y_inf_anchor)
         grads  = torch.autograd.grad(
@@ -266,7 +263,7 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
             for g, p in zip(grads, model.parameters())
         ])
 
-        # Gradients par couche pour L_layer_dist
+        # Gradients per layer for L_layer_dist
         grad_layers = [
             g.reshape(-1).detach() if g is not None
             else torch.zeros(p.numel(), device=device)
@@ -297,7 +294,7 @@ def ghost_mug(model, X_target, y_target, X_inf, y_inf,
         X_ghost_final = (best_alpha * X_target
                          + (1.0 - best_alpha) * X_inf_anchor)
 
-    # ── [C2/C3] Calcul du gradient brut puis Bootstrap Rescaling ──────────────
+    # ── [C2/C3] Calculation of the raw gradient followed by Bootstrap Rescaling ──────────────
     model.eval()
     model.zero_grad()
     with torch.enable_grad():
