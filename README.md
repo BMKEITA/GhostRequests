@@ -104,17 +104,6 @@ All results were obtained on **NVIDIA TITAN Xp (12.8 GB VRAM)**, PyTorch 2.3.1+c
 
 ---
 
-##  Stealth Metrics
-
-| Metric | Formula | Ideal Value |
-|--------|---------|-------------|
-| **GNR** | $$\|g^*\|_2 \;/\; \mathbb{E}[\mathcal{B}]$$ | 1.0 |
-| **DR_IQR** | $$\mathbf{1}[\|g^*\|_2 \notin [Q_1, Q_3]]$$ | 0.0 |
-| **DR_KL** | Normalized KL deviation from benign mean | 0.0 |
-| **SI** | $$1 - \frac{p_{\text{GNR}} + \text{DR}_{\text{IQR}} + \text{DR}_{\text{KL}}}{3}$$ | 1.0 |
-
----
-
 ##  Hardware & Runtime
 
 | Dataset | ISI Time | MUG Time | Total Overhead |
@@ -134,9 +123,7 @@ Based on our analysis, we recommend the following directions for future FU defen
 2. **Adaptive IQR thresholds** — Flag updates suspiciously *close* to the median, not just far from it.
 3. **Per-client contribution caps** — DP-style clipping to limit any single unlearning request's model shift.
 4. **Unlearning request verification** — Cryptographic proof-of-ownership to prevent request forgery.
-
 ---
-
 ##  Citation
 
 If you use this code in your research, please cite:
@@ -151,9 +138,7 @@ If you use this code in your research, please cite:
   note      = {Under review}
 }
 ```
-
 ---
-
 ##  Ethical Statement
 
 This research is intended **solely for academic and defensive purposes**. The Ghost Requests framework is published to:
