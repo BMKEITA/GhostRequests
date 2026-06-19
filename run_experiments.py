@@ -1,14 +1,12 @@
-# run_experiments.py  —  Ghost Requests v6.1
+# run_experiments.py 
 # ============================================================
-# Fixes v6 integres :
-#   [F1] Seeds globales pour reproductibilite totale
-#   [F2] Bootstrap IQR-clamped (applique dans ghost_main.py)
-#   [F3] Lambda stealth adaptatif par agregateur
-#   [F4] MUG iterations adaptatives par dataset
-# Fixes v6.1 :
-#   [P1] fl_train : acc_snap supprime (ghost_main.py)
-#   [P2] ghost_mug : label majoritaire (ghost_main.py)
-#   [P3] run_ablation_n_attackers : budget effectivement applique
+# [F1] Global seeds for full reproducibility 
+# [F2] Bootstrap IQR-clamped (applied in ghost_main.py)
+# [F3] Adaptive lambda stealth by aggregator 
+# [F4] MUG adaptive iterations by dataset 
+# [P1] fl_train: acc_snap removes (ghost_main.py) 
+# [P2] ghost_mug: majority label (ghost_main.py) 
+# [P3] run_ablation_n_attackers: budget actually applied
 # ============================================================
 
 import os
@@ -41,7 +39,7 @@ from ghost_main import (
 )
 
 # ─────────────────────────────────────────────────────────────
-#  Constantes globales
+# Global constants
 # ─────────────────────────────────────────────────────────────
 RESULT_DIR   = "./ghost_result"
 GLOBAL_SEED  = 42
@@ -57,7 +55,7 @@ set_seed(GLOBAL_SEED)
 
 
 # ─────────────────────────────────────────────────────────────
-#  Utilitaires
+#  Utilities
 # ─────────────────────────────────────────────────────────────
 def print_env():
     print("=" * 60)
@@ -96,7 +94,7 @@ def build_params(cfg: dict, seed: int = GLOBAL_SEED) -> FLParams:
         result_dir       = RESULT_DIR,
         seed             = seed,
     )
-    # [F3] Lambda adaptatif applique systematiquement
+    # [F3] Adaptive lambda applies systematically
     p.ghost_lambda_stealth = get_lambda_stealth(p.aggregation)
     return p
 
@@ -104,11 +102,11 @@ def build_params(cfg: dict, seed: int = GLOBAL_SEED) -> FLParams:
 def run_stealth_eval(global_model, train_ds, target_x, target_y,
                      inf_indices, params, ben_norms):
     """
-    Evalue la furtivite du gradient malveillant via Ghost MUG.
-    IMPORTANT : ben_norms doit etre calcule AVANT via compute_benign_norms().
+    Evaluate the stealth of the malicious gradient using Ghost MUG. 
+    IMPORTANT: ben_norms must be calculated BEFOREHAND via compute_benign_norms
     """
     assert ben_norms is not None and len(ben_norms) > 0, \
-        "ben_norms vide ! Appeler compute_benign_norms() avant run_stealth_eval()"
+        "ben_norms empty! call compute_benign_norms() befor run_stealth_eval"
 
     best_alpha, mal_grad, mug_time = ghost_mug(
         global_model, target_x, target_y,
@@ -122,7 +120,7 @@ def run_stealth_eval(global_model, train_ds, target_x, target_y,
 def run_asr_injection(global_model, mal_grad, client_data,
                       train_ds, target_x, target_y, params):
     """
-    Injecte le gradient malveillant dans un round FL et retourne l'ASR.
+    Injects the malicious gradient into a FL round and returns the ASR
     """
     mal_state = inject_malicious_gradient(global_model, mal_grad, params)
     chosen = random.sample(
@@ -146,7 +144,7 @@ def run_asr_injection(global_model, mal_grad, client_data,
 
 
 # ─────────────────────────────────────────────────────────────
-#  Configurations des 10 experiences principales
+#  Configurations of 10 main experiences 
 # ─────────────────────────────────────────────────────────────
 MAIN_EXPERIMENTS = [
     # ── MNIST ──────────────────────────────────────────────
@@ -175,7 +173,7 @@ MAIN_EXPERIMENTS = [
 
 
 # ─────────────────────────────────────────────────────────────
-#  Experiences principales (10 configs)
+#  Experiences  (10 configs)
 # ─────────────────────────────────────────────────────────────
 def run_main_experiments():
     all_results = []
@@ -246,11 +244,11 @@ def run_ablation_lambda():
 
 
 # ─────────────────────────────────────────────────────────────
-#  Ablation 2 : Ratio requetes malveillantes (multi-target)
+#  Ablation 2 : Malicious request ratio (multi-target)
 # ─────────────────────────────────────────────────────────────
 def run_ablation_ratio():
     print("\n" + "─" * 60)
-    print("  Ablation 2 : Ratio requetes malveillantes - MNIST IID FedAvg")
+    print("  Ablation 2 : Malicious request ratio - MNIST IID FedAvg")
     print("─" * 60)
 
     ratios    = [0.001, 0.003, 0.005, 0.007, 0.010]
@@ -340,12 +338,12 @@ def run_ablation_ratio():
 
 
 # ─────────────────────────────────────────────────────────────
-#  Ablation 3 : Nombre d'attaquants
-#  [P3] Budget effectivement applique a params.max_samples_per_client
+#  Ablation 3 : Number of attackers
+#  [P3] Budget actually applied to params.max_samples_per_client
 # ─────────────────────────────────────────────────────────────
 def run_ablation_n_attackers():
     print("\n" + "─" * 60)
-    print("  Ablation 3 : Nombre d'attaquants - MNIST IID FedAvg")
+    print("  Ablation 3 : Number of attackers - MNIST IID FedAvg")
     print("─" * 60)
 
     n_atk_list = [1, 2, 3, 4]
@@ -499,7 +497,7 @@ def run_ablation_defense():
     q3_ben = torch.quantile(ben_norms, 0.75).item()
     print(f"  Q3 benin = {q3_ben:.4f}")
 
-    # Gradient malveillant de base (calcule une seule fois)
+    #Basic malicious gradient (calculates only once)
     set_seed(GLOBAL_SEED)
     inf_indices, _ = isi_select(
         global_model, train_ds, target_x, target_y, params
@@ -728,4 +726,4 @@ if __name__ == "__main__":
     print_runtime_table(main_results)
     print_final_summary(main_results, greybox_results)
 
-    print("\n Toutes les experiences et ablations terminees !")
+    print("\n All experiments and ablations completed !")
