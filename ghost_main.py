@@ -1,5 +1,4 @@
-# ghost_main.py  -  Ghost Requests v6.1
-# Fixes v6:
+# ghost_main.py  
 #   [F1] Seeds globales pour reproductibilite
 #   [F2] Bootstrap rescaling renforce (IQR-clamped)
 #   [F3] lambda_stealth adaptatif par agregateur
