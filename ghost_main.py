@@ -3,7 +3,6 @@
 #   [F2] Bootstrap rescaling renforce (IQR-clamped)
 #   [F3] lambda_stealth adaptatif par agregateur
 #   [F4] MUG iterations adaptatives par dataset
-# Fixes v6.1:
 #   [P1] fl_train : acc_snap supprime (overhead inutile)
 #   [P2] ghost_mug : label majoritaire pour loss_ste (inf_ys coherent)
 
@@ -456,7 +455,7 @@ def compute_benign_norms(global_model, train_ds, client_data,
 
 
 # ─────────────────────────────────────────────
-#  Ghost MUG v6.1 - Solo-Optimization
+#  Ghost MUG - Solo-Optimization
 #  [P2] Label majoritaire pour loss_ste (coherence inf_ys)
 # ─────────────────────────────────────────────
 def ghost_mug(global_model, target_x, target_y, inf_indices,
