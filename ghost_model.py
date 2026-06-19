@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torchvision import models
 import numpy as np
 
-# --- LeNet5 pour MNIST --------------------------------------------------------
+# --- LeNet5 for MNIST --------------------------------------------------------
 
 class LeNet5(nn.Module):
     def __init__(self, num_classes=10):
@@ -26,15 +26,10 @@ class LeNet5(nn.Module):
     def forward_loss(self, x, y):
         return F.cross_entropy(self.forward(x), y)
 
-# --- ResNet-18 pour CIFAR-10 (BatchNorm Safe) ---------------------------------
+# --- ResNet-18 for CIFAR-10 (BatchNorm Safe) ---------------------------------
 
 class ResNet18CIFAR(nn.Module):
-    """
-    ResNet-18 adapte CIFAR-10 :
-    - Premiere conv 3x3 stride 1 (au lieu de 7x7 stride 2)
-    - Pas de MaxPool initial
-    - BatchNorm en eval() lors du calcul de gradient (safe pour HVP)
-    """
+    
     def __init__(self, num_classes=10):
         super().__init__()
         base = models.resnet18(weights=None)
